@@ -260,6 +260,7 @@
               type="text"
               v-model="searchQuery"
               placeholder="Search for a hotel..."
+              @keydown.enter.prevent="router.replace({ path: '/hotels', query: buildRouteQuery() })"
             />
           </div>
           <div class="sort-view-container">
@@ -462,6 +463,7 @@ function getHotelRoomCount(hotelId: number) {
 
 /** Build fetch options from current filter state */
 function buildFetchOptions(page: number) {
+  const normalizedSearch = normalizeSearchQuery(searchQuery.value);
   const checkIn = checkInDate.value
     ? formatDateForQuery(checkInDate.value)
     : undefined;
@@ -482,7 +484,7 @@ function buildFetchOptions(page: number) {
     page,
     limit: pageSize,
     sortBy: sortBy.value,
-    search: searchQuery.value || undefined,
+    search: normalizedSearch || undefined,
     stars: selectedStars.value.length > 0 ? selectedStars.value : undefined,
     minPrice: safeMinPrice,
     maxPrice: safeMaxPrice,
@@ -585,7 +587,7 @@ function applyRouteFilters() {
     typeof route.query.childAges === "string" ? route.query.childAges : "";
 
   selectedCity.value = city;
-  searchQuery.value = query;
+  searchQuery.value = normalizeSearchQuery(query);
   checkInDate.value = checkIn;
   checkOutDate.value = checkOut;
   adults.value = Math.max(1, Number.isNaN(adultsQuery) ? 2 : adultsQuery);
@@ -603,6 +605,8 @@ async function loadHotelsFromRoute() {
 function buildRouteQuery() {
   const query: Record<string, string> = {};
   if (selectedCity.value) query.city = selectedCity.value;
+  const normalizedSearch = normalizeSearchQuery(searchQuery.value);
+  if (normalizedSearch) query.q = normalizedSearch;
   if (checkInDate.value && checkOutDate.value) {
     query.checkIn = formatDateForQuery(checkInDate.value);
     query.checkOut = formatDateForQuery(checkOutDate.value);
@@ -615,6 +619,12 @@ function buildRouteQuery() {
   }
 
   return query;
+}
+
+function normalizeSearchQuery(value: string) {
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (!compact) return "";
+  return /[\p{L}\p{N}]/u.test(compact) ? compact : "";
 }
 
 function parseDate(value: string) {
@@ -774,7 +784,7 @@ watch(
 // Re-fetch from page 1 when sidebar filters change (not route)
 let filterDebounce: ReturnType<typeof setTimeout> | null = null;
 watch(
-  [priceRange, selectedStars, sortBy],
+  [priceRange, selectedStars, sortBy, searchQuery],
   () => {
     if (!initialized.value) return;
     if (filterDebounce) clearTimeout(filterDebounce);
@@ -1852,7 +1862,10 @@ watch(
 :deep(.sort-select-small .p-select-overlay) {
   top: 100% !important;
   left: 0 !important;
+  width: 100% !important;
   min-width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-top: 0;
   border-radius: 8px;
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
