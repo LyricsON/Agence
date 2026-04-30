@@ -235,7 +235,18 @@
           <div class="hi-booking-main-row">
             <div class="hi-price-col">
               <div class="hi-price-row">
-                <span class="hi-price"
+                <template v-if="showOfferPriceBreakdown">
+                  <span class="hi-price hi-price--old"
+                    >From
+                    <strong>{{ formatEuro(fromPricePerNight) }}</strong></span
+                  >
+                  <span class="hi-price hi-price--new"
+                    ><strong>{{
+                      formatEuro(discountedFromPricePerNight)
+                    }}</strong></span
+                  >
+                </template>
+                <span v-else class="hi-price"
                   >From
                   <strong>{{ formatEuro(fromPricePerNight) }}</strong></span
                 >
@@ -1117,7 +1128,11 @@
                     <strong>
                       {{ method.brand.toUpperCase() }} •••• {{ method.last4 }}
                     </strong>
-                    <span>Expires {{ method.expiryMonth }}/{{ method.expiryYear }}</span>
+                    <span
+                      >Expires {{ method.expiryMonth }}/{{
+                        method.expiryYear
+                      }}</span
+                    >
                   </div>
                   <span v-if="method.isDefault" class="saved-card-badge">
                     Default
@@ -1141,13 +1156,13 @@
                 <button
                   type="button"
                   class="primary-checkout-btn"
-                  :disabled="redirectingToPayment || selectedSavedCardId == null"
+                  :disabled="
+                    redirectingToPayment || selectedSavedCardId == null
+                  "
                   @click="handlePayNowWithSelectedCard"
                 >
                   {{
-                    redirectingToPayment
-                      ? "Processing payment..."
-                      : "Continue"
+                    redirectingToPayment ? "Processing payment..." : "Continue"
                   }}
                 </button>
               </div>
@@ -1270,6 +1285,7 @@ import {
 } from "vue";
 import { useRoute } from "vue-router";
 import { useHotels } from "~/composables/useHotels";
+import { useOffers } from "~/composables/useOffers";
 import { useRooms } from "~/composables/useRooms";
 import { useAuth } from "~/composables/useAuth";
 import { useAuthPrompt } from "~/composables/useAuthPrompt";
@@ -1287,6 +1303,7 @@ const { isAuthenticated, currentProfile, accountId } = useAuth();
 const authPrompt = useAuthPrompt();
 const { getById, checkAvailability: runCheckAvailability } = useHotels();
 const { rooms, fetchByHotel } = useRooms();
+const { offers: hotelOffers, fetchByHotel: fetchHotelOffers } = useOffers();
 const { reviews, fetchByHotel: fetchReviews, submitReview } = useReviews();
 const {
   createBooking,
@@ -1665,6 +1682,39 @@ const fromPricePerNight = computed(() => {
   return Math.min(...rooms.value.map((room) => room.pricePerNight));
 });
 
+const isOfferContext = computed(
+  () =>
+    String(route.query.from ?? "").toLowerCase() === "offers" ||
+    Number(route.query.offerId) > 0,
+);
+
+const activeHotelOffer = computed(() => {
+  const now = Date.now();
+  const requestedOfferId = Number(route.query.offerId);
+  const activeOffers = hotelOffers.value.filter((offer) => {
+    const startsAt = new Date(offer.startDate).getTime();
+    const endsAt = new Date(offer.endDate).getTime();
+    return offer.active && startsAt <= now && endsAt >= now;
+  });
+
+  if (requestedOfferId > 0) {
+    return activeOffers.find((offer) => offer.id === requestedOfferId) ?? null;
+  }
+
+  return activeOffers[0] ?? null;
+});
+
+const discountedFromPricePerNight = computed(() => {
+  const offer = activeHotelOffer.value;
+  if (!offer) return fromPricePerNight.value;
+  const discounted = fromPricePerNight.value * (1 - offer.discountRate / 100);
+  return Math.max(0, Math.round(discounted));
+});
+
+const showOfferPriceBreakdown = computed(
+  () => isOfferContext.value && Boolean(activeHotelOffer.value),
+);
+
 const averageRatingDisplay = computed(() => {
   if (!reviews.value.length) return "4.8";
   const average =
@@ -1990,7 +2040,10 @@ async function proceedToPaymentCheckout(confirmation: BookingConfirmation) {
 }
 
 async function handlePayNowWithSelectedCard() {
-  if (!pendingCardBookingConfirmation.value || selectedSavedCardId.value == null)
+  if (
+    !pendingCardBookingConfirmation.value ||
+    selectedSavedCardId.value == null
+  )
     return;
   const paid = await payWithSavedCard({
     bookingId: pendingCardBookingConfirmation.value.bookingId,
@@ -2157,7 +2210,11 @@ onMounted(async () => {
     const data = await getById(id);
     if (data) {
       hotel.value = data;
-      await Promise.all([fetchByHotel(id), fetchReviews(id)]);
+      await Promise.all([
+        fetchByHotel(id),
+        fetchReviews(id),
+        fetchHotelOffers(id),
+      ]);
     }
   }
   loading.value = false;
@@ -2311,7 +2368,8 @@ onBeforeUnmount(() => {
 .saved-card-item:has(input:checked) {
   border-color: var(--color-primary-500);
   background: color-mix(in srgb, var(--color-primary-50) 55%, white 45%);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary-100) 55%, transparent 45%);
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--color-primary-100) 55%, transparent 45%);
 }
 
 .saved-card-item input[type="radio"] {
@@ -3101,6 +3159,17 @@ onBeforeUnmount(() => {
   font-weight: 800;
   color: var(--color-navy-700);
   letter-spacing: -0.02em;
+}
+.hi-price--old strong {
+  color: var(--color-accent-600);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  font-size: 18px;
+  position: relative;
+  top: -7px;
+}
+.hi-price--new strong {
+  color: var(--color-primary-700);
 }
 .hi-per {
   font-size: 13px;

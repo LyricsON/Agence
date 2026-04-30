@@ -82,7 +82,13 @@ export function useAuth() {
   const pendingVerificationPassword = useState<string | null>('auth_pending_verification_password', () => null)
 
   const isAuthenticated = computed(() => currentAccount.value !== null)
-  const isVerified = computed(() => Boolean(currentAccount.value && currentAccount.value.emailVerified))
+  const isVerified = computed(() =>
+    Boolean(
+      currentAccount.value &&
+        (currentAccount.value.emailVerified ||
+          currentAccount.value.role === 'admin'),
+    ),
+  )
   const isAdmin = computed(() => currentAccount.value?.role === 'admin')
   const accountId = computed(() => currentAccount.value?.id ?? 0)
 
@@ -91,6 +97,22 @@ export function useAuth() {
     error.value = null
     try {
       const normalizedEmail = email.trim().toLowerCase()
+      const account = await service.login(normalizedEmail, password)
+      if (!account) {
+        error.value = 'Invalid email or password'
+        return false
+      }
+
+      if (account.role === 'admin') {
+        account.emailVerified = true
+        currentProfile.value = null
+        currentAccount.value = account
+        persistAuthState(account, null)
+        pendingVerificationEmail.value = null
+        pendingVerificationPassword.value = null
+        return true
+      }
+
       const { $firebaseAuth } = useNuxtApp()
       if (!$firebaseAuth) {
         throw new Error('Firebase authentication is not available')
@@ -104,11 +126,6 @@ export function useAuth() {
         return false
       }
 
-      const account = await service.login(normalizedEmail, password)
-      if (!account) {
-        error.value = 'Invalid email or password'
-        return false
-      }
       if (!account.emailVerified) {
         try {
           const idToken = await getIdToken(firebaseCredential.user, true)

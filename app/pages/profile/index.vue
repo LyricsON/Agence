@@ -27,9 +27,9 @@
                 v-for="tab in [
                   'Account Settings',
                   'Travel Preferences',
-                  'Documents',
                   'Billing',
                   'Notifications',
+                  'Documents',
                 ]"
                 :key="tab"
                 class="tab-btn"
@@ -325,7 +325,10 @@
                               }}</span
                             >
                           </div>
-                          <p v-if="passportValidationMessage" class="form-error">
+                          <p
+                            v-if="passportValidationMessage"
+                            class="form-error"
+                          >
                             {{ passportValidationMessage }}
                           </p>
                         </div>
@@ -481,19 +484,6 @@
                           account and speed up checkout.
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        class="btn-update"
-                        :disabled="loading || paymentSetupLoading"
-                        @click="startStripePaymentMethodSetup()"
-                      >
-                        <span class="material-symbols-outlined">add</span>
-                        {{
-                          paymentMethods.length
-                            ? "Add Payment Method"
-                            : "Add Your First Card"
-                        }}
-                      </button>
                     </div>
                     <p
                       v-if="paymentSetupFeedback.message"
@@ -714,7 +704,11 @@ const {
   removePaymentMethod,
   loading,
 } = useAuth();
-const { success: toastSuccess, error: toastError, warn: toastWarn } = useAppToast();
+const {
+  success: toastSuccess,
+  error: toastError,
+  warn: toastWarn,
+} = useAppToast();
 const activeTab = ref("Account Settings");
 const defaultPhoneCountry: CountryCode = "TN";
 const phoneExamples = phoneExamplesData as Record<string, string>;
@@ -915,7 +909,9 @@ function normalizeProfileDraft() {
   const lastName = formData.value.lastName.trim();
   const phone = normalizePhoneForSave(formData.value.phone);
   const dateOfBirth = formData.value.dateOfBirth.trim();
-  const passportNumber = sanitizePassportInput(formData.value.passportNumber.trim());
+  const passportNumber = sanitizePassportInput(
+    formData.value.passportNumber.trim(),
+  );
   const bio = formData.value.bio.trim();
   const preferredDestinations = formData.value.preferredDestinations
     .map((city) => city.trim())
@@ -997,7 +993,10 @@ const passportValidationMessage = computed(() => {
     return "";
   }
 
-  if (passport.length < PASSPORT_MIN_LENGTH || passport.length > PASSPORT_MAX_LENGTH) {
+  if (
+    passport.length < PASSPORT_MIN_LENGTH ||
+    passport.length > PASSPORT_MAX_LENGTH
+  ) {
     return `Passport number must be ${PASSPORT_MIN_LENGTH}-${PASSPORT_MAX_LENGTH} characters.`;
   }
 
@@ -1010,7 +1009,10 @@ const passportValidationMessage = computed(() => {
   return "";
 });
 const paymentSetupLoading = ref(false);
-const paymentSetupFeedback = ref<{ type: "success" | "error"; message: string }>({
+const paymentSetupFeedback = ref<{
+  type: "success" | "error";
+  message: string;
+}>({
   type: "success",
   message: "",
 });
@@ -1206,7 +1208,8 @@ function getFieldIcon(key: string, value: any) {
     return "error";
   }
   if (key === "passportNumber") {
-    if (hasValue(value) && !passportValidationMessage.value) return "check_circle";
+    if (hasValue(value) && !passportValidationMessage.value)
+      return "check_circle";
     return "error";
   }
   if (hasValue(value)) return "check_circle";

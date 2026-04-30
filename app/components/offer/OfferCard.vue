@@ -1,5 +1,5 @@
 <template>
-  <div class="offer-card" @click="navigateTo(`/hotels/${offer.hotelId}`)">
+  <div class="offer-card" @click="navigateTo(offerDestination)">
     <!-- ── Image Zone ── -->
     <div class="offer-card__image-container">
       <img
@@ -57,7 +57,7 @@
         </div>
         <button
           class="offer-card__cta"
-          @click.stop="navigateTo(`/hotels/${offer.hotelId}`)"
+          @click.stop="navigateTo(offerDestination)"
         >
           View
         </button>
@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import type { Offer } from "~/types/models";
 
 const props = defineProps<{ offer: Offer }>();
@@ -91,6 +91,10 @@ const truncatedDescription = computed(() => {
   const desc = props.offer.description || "";
   return desc.length > 80 ? `${desc.substring(0, 80)}…` : desc;
 });
+
+const offerDestination = computed(
+  () => `/hotels/${props.offer.hotelId}?from=offers&offerId=${props.offer.id}`,
+);
 
 function formatDate(dateStr: string) {
   if (!dateStr) return "N/A";
@@ -389,3 +393,4 @@ function formatDate(dateStr: string) {
   }
 }
 </style>
+
