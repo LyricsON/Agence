@@ -27,9 +27,9 @@
                 v-for="tab in [
                   'Account Settings',
                   'Travel Preferences',
-                  'Documents',
                   'Billing',
                   'Notifications',
+                  'Documents',
                 ]"
                 :key="tab"
                 class="tab-btn"
@@ -481,19 +481,6 @@
                           account and speed up checkout.
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        class="btn-update"
-                        :disabled="loading || paymentSetupLoading"
-                        @click="startStripePaymentMethodSetup()"
-                      >
-                        <span class="material-symbols-outlined">add</span>
-                        {{
-                          paymentMethods.length
-                            ? "Add Payment Method"
-                            : "Add Your First Card"
-                        }}
-                      </button>
                     </div>
                     <p
                       v-if="paymentSetupFeedback.message"
