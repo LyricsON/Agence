@@ -49,6 +49,7 @@
             >Offers</NuxtLink
           >
           <NuxtLink
+            v-if="isAuthenticated"
             to="/wishlist"
             class="client-navbar__link px-4 py-2 rounded-lg text-sm font-semibold transition-all"
             active-class="client-navbar__link--active"
@@ -276,6 +277,7 @@
           >Offers</NuxtLink
         >
         <NuxtLink
+          v-if="isAuthenticated"
           to="/wishlist"
           class="block px-4 py-3 rounded-xl text-base font-bold text-on-surface hover:bg-surface-container-lowest transition-colors"
           @click="handleWishlistNav"
