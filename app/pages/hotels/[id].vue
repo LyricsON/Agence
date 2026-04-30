@@ -163,16 +163,12 @@
                   <span
                     v-for="i in 5"
                     :key="i"
-                    class="material-symbols-outlined"
-                    style="
-                      font-variation-settings: &quot;FILL&quot; 1;
-                      color: #cdaf5d;
-                      font-size: 16px;
-                    "
+                    class="material-symbols-outlined hi-star"
+                    :class="{ 'hi-star--active': i <= roundedAverageRating }"
                     >star</span
                   >
                 </div>
-                <span class="hi-rating-label">Excellent</span>
+                <span class="hi-rating-label">{{ ratingLabel }}</span>
               </div>
               <span class="hi-review-count">{{ reviews.length }} reviews</span>
             </div>
@@ -567,19 +563,17 @@
                   </p>
                 </div>
                 <div class="global-rating-block">
-                  <span class="rating-score">{{
-                    (
-                      reviews.reduce((sum, r) => sum + r.rating, 0) /
-                        reviews.length || 0
-                    ).toFixed(1)
-                  }}</span>
+                  <span class="rating-score">{{ averageRatingDisplay }}</span>
                   <div class="rating-context">
                     <div class="stars-gold">
-                      <span v-for="i in 5" class="material-symbols-outlined"
+                      <span
+                        v-for="i in 5"
+                        class="material-symbols-outlined"
+                        :class="{ active: i <= roundedAverageRating }"
                         >star</span
                       >
                     </div>
-                    <span>Excellent</span>
+                    <span>{{ ratingLabel }}</span>
                   </div>
                 </div>
               </div>
@@ -1716,11 +1710,29 @@ const showOfferPriceBreakdown = computed(
 );
 
 const averageRatingDisplay = computed(() => {
-  if (!reviews.value.length) return "4.8";
+  if (!reviews.value.length) return "0.0";
   const average =
     reviews.value.reduce((sum, review) => sum + review.rating, 0) /
     reviews.value.length;
   return average.toFixed(1);
+});
+
+const averageRatingValue = computed(() =>
+  reviews.value.length
+    ? reviews.value.reduce((sum, review) => sum + review.rating, 0) /
+      reviews.value.length
+    : 0,
+);
+
+const roundedAverageRating = computed(() => Math.round(averageRatingValue.value));
+
+const ratingLabel = computed(() => {
+  if (!reviews.value.length) return "No reviews yet";
+  if (averageRatingValue.value >= 4.5) return "Excellent";
+  if (averageRatingValue.value >= 3.5) return "Very good";
+  if (averageRatingValue.value >= 2.5) return "Good";
+  if (averageRatingValue.value >= 1.5) return "Average";
+  return "Poor";
 });
 
 const guestSummary = computed(() => {
@@ -2708,9 +2720,12 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 .hi-star {
-  color: var(--color-accent);
+  color: var(--color-gray-300);
   font-size: 18px;
   font-variation-settings: "FILL" 1;
+}
+.hi-star--active {
+  color: var(--color-accent);
 }
 .hi-location {
   display: flex;
@@ -3700,9 +3715,12 @@ onBeforeUnmount(() => {
   margin-bottom: var(--space-1);
 }
 .stars-gold .material-symbols-outlined {
-  color: var(--color-accent);
+  color: var(--color-gray-300);
   font-variation-settings: "FILL" 1;
   font-size: 18px;
+}
+.stars-gold .material-symbols-outlined.active {
+  color: var(--color-accent);
 }
 .rating-context span {
   font-weight: var(--font-weight-bold);
