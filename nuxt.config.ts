@@ -82,7 +82,11 @@ export default defineNuxtConfig({
   },
    app: {
      head: {
-       link: [...runtimeStylesheets],
+       link: [
+         ...runtimeStylesheets,
+         { rel: 'icon', type: 'image/png', href: '/logo.png' },
+         { rel: 'apple-touch-icon', href: '/logo.png' }
+       ],
        script: [...runtimeScripts]
      },
      pageTransition: false

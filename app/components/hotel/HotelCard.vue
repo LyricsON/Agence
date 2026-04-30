@@ -5,12 +5,7 @@
       <div class="hotel-card__image-shade"></div>
 
       <div class="hotel-card__image-top">
-        <div class="hotel-card__chips">
-          <span v-if="viewMode !== 'list'" class="hotel-card__chip">{{ hotel.city }}</span>
-          <span v-if="viewMode === 'list'" class="hotel-card__chip hotel-card__chip--rating">
-            <span class="hotel-card__rating-value">{{ hotel.stars }}</span>
-            <span class="material-symbols-outlined hotel-card__rating-star">star</span>
-          </span>
+        <div class="">
         </div>
         <button v-if="viewMode !== 'list'" class="hotel-card__favorite" @click.stop="toggleFavorite" aria-label="Toggle favorite">
           <span class="material-symbols-outlined" :class="{ filled: isFavorite }">favorite</span>
