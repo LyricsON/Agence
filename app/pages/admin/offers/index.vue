@@ -89,7 +89,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-1">
               <label class="text-[11px] font-bold text-outline uppercase">Hotel</label>
-              <select v-model.number="form.hotelId" class="w-full px-3 py-2 border border-outline-variant/30 rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+              <select v-model.number="form.hotelId" @change="handleHotelChange" class="w-full px-3 py-2 border border-outline-variant/30 rounded-lg text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                 <option v-for="hotel in hotels" :key="hotel.id" :value="hotel.id">
                   {{ hotel.name }} - {{ hotel.city }}
                 </option>
@@ -168,18 +168,56 @@ const editingId = ref<number | null>(null)
 const form = ref<OfferForm>(emptyForm())
 
 function emptyForm(): OfferForm {
-  const today = new Date().toISOString().slice(0, 10)
-  const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const defaultHotelId = hotels.value[0]?.id ?? 1
+  const { startDate, endDate } = getSuggestedDateRange(defaultHotelId)
 
   return {
-    hotelId: hotels.value[0]?.id ?? 1,
+    hotelId: defaultHotelId,
     title: '',
     description: '',
     discountRate: 10,
-    startDate: today,
-    endDate: nextWeek,
+    startDate,
+    endDate,
     active: true,
     image: '',
+  }
+}
+
+function toIsoDate(value: Date) {
+  return value.toISOString().slice(0, 10)
+}
+
+function normalizeDate(value: Date) {
+  const date = new Date(value)
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function getSuggestedDateRange(hotelId: number) {
+  const today = normalizeDate(new Date())
+  const activeHotelOffers = offers.value.filter((offer) => {
+    if (offer.hotelId !== hotelId || !offer.active) return false
+    const offerEnd = normalizeDate(new Date(offer.endDate))
+    return offerEnd >= today
+  })
+
+  let start = today
+  if (activeHotelOffers.length) {
+    const latestEnd = activeHotelOffers.reduce((latest, offer) => {
+      const end = normalizeDate(new Date(offer.endDate))
+      return end > latest ? end : latest
+    }, normalizeDate(new Date(activeHotelOffers[0].endDate)))
+    start = new Date(latestEnd)
+    start.setDate(start.getDate() + 1)
+    start = normalizeDate(start)
+  }
+
+  const end = new Date(start)
+  end.setDate(end.getDate() + 7)
+
+  return {
+    startDate: toIsoDate(start),
+    endDate: toIsoDate(end),
   }
 }
 
@@ -206,6 +244,13 @@ function openCreate() {
   form.value = emptyForm()
   modalError.value = ''
   showModal.value = true
+}
+
+function handleHotelChange() {
+  if (editingId.value) return
+  const { startDate, endDate } = getSuggestedDateRange(form.value.hotelId)
+  form.value.startDate = startDate
+  form.value.endDate = endDate
 }
 
 function openEdit(offer: Offer) {
@@ -253,10 +298,7 @@ async function saveOffer() {
     await refresh()
   } catch (cause: any) {
     const message = cause?.message || 'Unable to save this offer.'
-    modalError.value =
-      message === 'An active offer already exists for this hotel in the selected date range.'
-        ? ''
-        : message
+    modalError.value = message
   }
 }
 
